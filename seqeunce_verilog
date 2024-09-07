@@ -1,0 +1,125 @@
+// verilog code
+
+`timescale 1ns / 1ps
+
+module sequence_detector (clk, rst, x, y);
+
+input clk, rst, x;
+output reg y;
+
+parameter s0 = 2'b00,
+          s1 = 2'b01,
+          s2 = 2'b10,
+          s3 = 2'b11;
+          
+reg [1:0] cst, nst;
+
+always @(posedge clk or posedge rst)
+begin
+    if (rst)
+        cst <= s0;
+    else
+        cst <= nst;
+end   
+
+always @(cst or x)
+begin
+    case(cst)
+        s0: begin
+            if(x == 1)
+                nst <= s1;
+            else
+                nst <= s0;
+        end
+        s1: begin
+            if(x == 0)
+                nst <= s2;
+            else
+                nst <= s1;
+        end
+        s2: begin
+            if(x == 1)
+                nst <= s3;
+            else
+                nst <= s0;
+        end
+        s3: begin
+            if(x == 1)
+                nst <= s1;
+            else
+                nst <= s2;
+        end
+        default: nst <= s0;
+    endcase
+end      
+
+always @(cst)
+begin
+    case(cst)
+        s0: y <= 0;
+        s1: y <= 0;
+        s2: y <= 0;
+        s3: y <= 1; // Assuming the sequence to detect is "101"
+        default: y <= 0;
+    endcase
+end 
+
+endmodule
+
+
+// testbench code
+
+`timescale 1ns / 1ps
+
+module sequence_detector_tb();
+
+    reg clk;
+    reg rst;
+    reg x;
+    wire y;
+
+    // Instantiate the Unit Under Test (UUT)
+    sequence_detector uut (
+        .clk(clk),
+        .rst(rst),
+        .x(x),
+        .y(y)
+    );
+
+    initial begin
+        // Initialize Inputs
+        clk = 0;
+        rst = 0;
+        x = 0;
+
+        // VCD dumpfile
+        $dumpfile("sequence_detector_tb.vcd");
+        $dumpvars(0, sequence_detector_tb);
+
+        // Apply reset
+        #10;
+        rst = 1;
+        #10;
+        rst = 0;
+
+        // Apply test sequence
+        #10; x = 0; 
+        #10; x = 1; 
+        #10; x = 0; 
+        #10; x = 1; 
+        #10; x = 0; 
+        #10; x = 1; 
+        #10; x = 0; 
+        #10; x = 1; 
+        #10; x = 0; 
+        #10; x = 1; 
+        #10; x = 0; 
+
+        // Finish simulation
+        #100;
+        $finish;
+    end
+
+    always #5 clk = ~clk;
+
+endmodule
